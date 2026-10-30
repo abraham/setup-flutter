@@ -3,11 +3,54 @@ OS=${RUNNER_OS:-linux}
 ARCH=${RUNNER_ARCH:-x64}
 
 # Action inputs
-FLUTTER_VERSION=${1:-"latest"}
+FLUTTER_VERSION=${1:-""}
 FLUTTER_CHANNEL=${2:-"stable"}
+FLUTTER_VERSION_FILE=${3:-${FLUTTER_VERSION_FILE:-""}}
 FLUTTER_OS=$(echo "${OS}" | awk '{print tolower($0)}')
 FLUTTER_ARCH=$(echo "${ARCH}" | awk '{print tolower($0)}')
 FLUTTER_RELEASE_URL=${FLUTTER_RELEASE_URL:-"https://storage.googleapis.com/flutter_infra_release/releases"}
+
+# Validate and resolve version / version-file inputs
+if [[ -n "$FLUTTER_VERSION" && -n "$FLUTTER_VERSION_FILE" ]]; then
+	echo -e "::error::Cannot specify both 'version' and 'version-file' inputs."
+	exit 1
+fi
+
+if [[ -n "$FLUTTER_VERSION_FILE" ]]; then
+	if [ ! -f "$FLUTTER_VERSION_FILE" ]; then
+		echo -e "::error::The specified version file '${FLUTTER_VERSION_FILE}' does not exist."
+		exit 1
+	fi
+
+	echo "Reading Flutter SDK version from '${FLUTTER_VERSION_FILE}'..."
+	FLUTTER_VERSION=$(
+		sed -nE '/^environment:/,/^[^[:space:]#]/ s/^[[:space:]]+flutter:[[:space:]]*//p' "$FLUTTER_VERSION_FILE" |
+		tr -d "'\"\r" |
+		sed -E 's/#.*//; s/^[[:space:]~><=v^]+//; s/[[:space:]><].*$//'
+	)
+
+	if [ -z "$FLUTTER_VERSION" ] || [ "$FLUTTER_VERSION" == "null" ]; then
+		echo -e "::error::Failed to find 'environment.flutter' version in '${FLUTTER_VERSION_FILE}'."
+		exit 1
+	fi
+
+	if [[ "$FLUTTER_VERSION" == "any" ]]; then
+		FLUTTER_VERSION="latest"
+	fi
+
+	echo "Resolved Flutter SDK version from '${FLUTTER_VERSION_FILE}': ${FLUTTER_VERSION}"
+fi
+
+if [ -z "$FLUTTER_VERSION" ]; then
+	FLUTTER_VERSION="latest"
+fi
+
+if [[ "${RESOLVE_VERSION_ONLY}" == "true" ]]; then
+	if [ -n "${GITHUB_OUTPUT}" ]; then
+		echo "version=${FLUTTER_VERSION}" >> "$GITHUB_OUTPUT"
+	fi
+	exit 0
+fi
 
 # WARNING:
 # Setting the Flutter SDK version to "latest" will automatically determine the latest Flutter SDK version via the release manifest.

@@ -7,7 +7,11 @@ inputs:
   version:
     description: "The version to install: Default: latest"
     required: false
-    default: "latest"
+    default: ""
+  version-file:
+    description: "The path to the pubspec.yaml file containing the version to install"
+    required: false
+    default: ""
   channel:
     description: 'The release channel to install. Default: stable'
     required: false
@@ -27,21 +31,27 @@ inputs:
 runs:
   using: "composite"
   steps:
+    # Resolve the Flutter SDK version from version-file if specified
+    - if: ${{ inputs.version-file != '' }}
+      id: resolve-version
+      name: Resolve Flutter SDK version
+      run: RESOLVE_VERSION_ONLY=true $GITHUB_ACTION_PATH/action.sh "${{ inputs.version }}" "${{ inputs.channel }}" "${{ inputs.version-file }}"
+      shell: bash
     # Cache the Flutter SDK
     - if: ${{ inputs.cache-sdk == 'true' }}
       name: Configure Flutter SDK cache
       uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # 6.1.0
       with:
         path: ${{ runner.tool_cache }}/flutter
-        key: flutter-action-setup-flutter-sdk-${{ runner.os }}-${{ inputs.version }}-${{ runner.arch }}-${{ inputs.channel }}
+        key: flutter-action-setup-flutter-sdk-${{ runner.os }}-${{ steps.resolve-version.outputs.version || inputs.version || 'latest' }}-${{ runner.arch }}-${{ inputs.channel }}
     # Cache the pub dependencies
     - if: ${{ inputs.cache == 'true' }}
       name: Configure pub dependencies cache
       uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # 6.1.0
       with:
         path: ${{ runner.temp }}/flutter/pub-cache
-        key: flutter-action-setup-flutter-${{ inputs.cache-key }}-pub-cache-${{ runner.os }}-${{ inputs.version }}-${{ runner.arch }}-${{ inputs.channel }}
+        key: flutter-action-setup-flutter-${{ inputs.cache-key }}-pub-cache-${{ runner.os }}-${{ steps.resolve-version.outputs.version || inputs.version || 'latest' }}-${{ runner.arch }}-${{ inputs.channel }}
     # Run the action
     - name: Setup Flutter SDK
-      run: $GITHUB_ACTION_PATH/action.sh ${{ inputs.version }} ${{ inputs.channel }}
+      run: $GITHUB_ACTION_PATH/action.sh "${{ inputs.version }}" "${{ inputs.channel }}" "${{ inputs.version-file }}"
       shell: bash

@@ -10,13 +10,18 @@ on:
         type: string
       channel:
         description: 'Flutter channel'
-        required: true
+        required: false
         default: 'stable'
         type: string
       version:
         description: 'Flutter version'
-        required: true
-        default: 'latest'
+        required: false
+        default: ''
+        type: string
+      version-file:
+        description: 'Path to pubspec.yaml containing the Flutter version'
+        required: false
+        default: ''
         type: string
       cache-sdk:
         description: 'Cache the installed Flutter SDK. Default: false'
@@ -34,6 +39,7 @@ jobs:
         with:
           channel: ${{ inputs.channel }}
           version: ${{ inputs.version }}
+          version-file: ${{ inputs.version-file }}
           cache-sdk: ${{ inputs.cache-sdk }}
 
       - name: Dart version

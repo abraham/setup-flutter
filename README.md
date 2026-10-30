@@ -16,9 +16,11 @@ This [GitHub Action] installs and sets up of a Flutter SDK for use in actions by
 ## Inputs
 
 The action takes the following inputs:
-  * `version`: (Required) A specific Flutter SDK version to install, e.g. `latest` or `3.0.2` or `3.1.0-9.0.pre`
+  * `version`: (Optional) A specific Flutter SDK version to install, e.g. `latest` or `3.0.2` or `3.1.0-9.0.pre`. Default: `latest`
 
-  * `channel`: (Required) The Flutter SDK release channel to install.
+  * `version-file`: (Optional) The path to the `pubspec.yaml` file containing the Flutter SDK version (`environment.flutter`) to install. Uses the version as specified in the file and does not resolve ranges. Cannot be used together with `version`.
+
+  * `channel`: (Optional) The Flutter SDK release channel to install. Default: `stable`
     Available channels are `stable`, `beta`. See
     https://flutter.dev/docs/development/tools/sdk/releases for details.
 
@@ -61,6 +63,17 @@ jobs:
         run: flutter test
 ```
 
+### Reading version from `pubspec.yaml`
+
+Use `version-file` to install the Flutter SDK version specified under `environment.flutter` in your `pubspec.yaml`:
+
+```yml
+      - name: Setup Flutter SDK
+        uses: flutter-actions/setup-flutter@v4
+        with:
+          version-file: pubspec.yaml
+```
+
 ## Automated publishing of packages to [Pub.dev]
 
 You can automated publishing of packages to [Pub.dev] from GitHub Actions by using the [flutter-actions/setup-pubdev-credentials] action.
@@ -99,7 +112,7 @@ This action is designed to be used in GitHub Actions environment. If you want to
 ```bash
 # Usage:
 #     curl -fsSL https://raw.githubusercontent.com/flutter-actions/setup-flutter/main/install.sh | bash -s -- <version> <channel>
-# 
+#
 # Example:
 
 export SETUP_FLUTTER_BRANCH=main
